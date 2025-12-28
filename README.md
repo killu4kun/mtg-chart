@@ -133,6 +133,16 @@ O projeto usa **PostgreSQL** com **Neon** (recomendado pela Vercel) ou **Supabas
 
 Após o deploy na Vercel, inicialize o banco fazendo:
 
+**PowerShell (Windows):**
+```powershell
+# Criar as tabelas
+Invoke-RestMethod -Uri "https://seu-app.vercel.app/api/db/init" -Method POST
+
+# (Opcional) Adicionar dados de exemplo
+Invoke-RestMethod -Uri "https://seu-app.vercel.app/api/init" -Method POST
+```
+
+**Bash/Linux/Mac:**
 ```bash
 # Criar as tabelas
 curl -X POST https://seu-app.vercel.app/api/db/init
@@ -161,7 +171,15 @@ Para desenvolvimento local, você pode usar:
 
 ### Migrações:
 
-O schema é criado automaticamente quando você executa `/api/db/init`. Para alterar o schema, edite `lib/db/index.ts` e faça uma nova requisição para `/api/db/init`.
+O schema é criado automaticamente quando você executa `/api/db/init`. 
+
+**Para executar manualmente via SQL Editor:**
+- Use o arquivo `lib/db/schema.sql` (SQL puro)
+- Cole no SQL Editor do Neon/Supabase e execute
+
+**Para alterar o schema:**
+- Edite `lib/db/index.ts` (código TypeScript) para usar via API
+- Ou edite `lib/db/schema.sql` (SQL puro) para executar manualmente
 
 ## 📝 Licença
 

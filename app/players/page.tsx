@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { PlayerCard } from '@/components/PlayerCard';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -9,9 +9,10 @@ import { BackButton } from '@/components/BackButton';
 import { playersAPI, decksAPI } from '@/lib/api';
 import { Player, Deck } from '@/lib/types';
 import { DeckCard } from '@/components/DeckCard';
+import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 export default function PlayersPage() {
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [allPlayers, setAllPlayers] = useState<Player[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,15 +21,18 @@ export default function PlayersPage() {
   const [deckColors, setDeckColors] = useState<string[]>([]);
   const [decks, setDecks] = useState<Record<string, Deck[]>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const allPlayers = await playersAPI.getAll();
-      setPlayers(allPlayers);
+      const fetchedPlayers = await playersAPI.getAll();
+      setAllPlayers(fetchedPlayers);
       
       const decksMap: Record<string, Deck[]> = {};
-      for (const player of allPlayers) {
+      for (const player of fetchedPlayers) {
         decksMap[player.id] = await decksAPI.getAll(player.id);
       }
       setDecks(decksMap);
@@ -38,6 +42,29 @@ export default function PlayersPage() {
       setIsLoading(false);
     }
   };
+
+  // Filtrar jogadores por nome
+  const filteredPlayers = useMemo(() => {
+    if (!searchQuery.trim()) return allPlayers;
+    const query = searchQuery.toLowerCase().trim();
+    return allPlayers.filter(player => 
+      player.name.toLowerCase().includes(query) ||
+      (player.email && player.email.toLowerCase().includes(query))
+    );
+  }, [allPlayers, searchQuery]);
+
+  // Paginação
+  const totalPages = Math.ceil(filteredPlayers.length / itemsPerPage);
+  const paginatedPlayers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredPlayers.slice(startIndex, endIndex);
+  }, [filteredPlayers, currentPage, itemsPerPage]);
+
+  // Resetar página quando a busca mudar
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   useEffect(() => {
     loadData();
@@ -155,35 +182,79 @@ export default function PlayersPage() {
           </Card>
         )}
 
-        <div className="space-y-8">
-          {players.length > 0 ? (
-            players.map(player => (
-              <div key={player.id}>
-                <PlayerCard
-                  player={player}
-                  decks={decks[player.id] || []}
-                  onDelete={handleDeletePlayer}
+        {/* Barra de Busca e Controles */}
+        <Card className="mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            {/* Campo de Busca */}
+            <div className="flex-1 w-full sm:max-w-md relative">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar por nome ou email..."
+                  className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mtg-blue focus:border-transparent"
                 />
-                
-                <div className="mt-6 pl-4 border-l-4 border-mtg-blue/30">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Decks ({decks[player.id]?.length || 0})
-                    </h3>
-                    <Button 
-                      size="sm" 
-                      variant="secondary"
-                      onClick={() => setSelectedPlayerForDeck(
-                        selectedPlayerForDeck === player.id ? null : player.id
-                      )}
-                    >
-                      {selectedPlayerForDeck === player.id ? 'Cancelar' : 'Adicionar Deck'}
-                    </Button>
-                  </div>
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+              {searchQuery && (
+                <p className="mt-2 text-sm text-gray-600">
+                  {filteredPlayers.length} {filteredPlayers.length === 1 ? 'jogador encontrado' : 'jogadores encontrados'}
+                </p>
+              )}
+            </div>
 
-                  {selectedPlayerForDeck === player.id && (
-                    <Card className="mb-4 bg-gray-50">
-                      <h4 className="font-semibold text-gray-900 mb-4">Novo Deck</h4>
+            {/* Controles de Paginação - Itens por página */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-gray-700 whitespace-nowrap">
+                  Itens por página:
+                </label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-mtg-blue focus:border-transparent"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <div className="space-y-6">
+          {paginatedPlayers.length > 0 ? (
+            paginatedPlayers.map(player => (
+              <PlayerCard
+                key={player.id}
+                player={player}
+                decks={decks[player.id] || []}
+                onDelete={handleDeletePlayer}
+                onAddDeck={(playerId) => setSelectedPlayerForDeck(
+                  selectedPlayerForDeck === playerId ? null : playerId
+                )}
+                onDeleteDeck={handleDeleteDeck}
+                renderDeckForm={(playerId) => 
+                  selectedPlayerForDeck === playerId ? (
+                    <Card className="mb-4 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-mtg-blue/20">
+                      <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <span className="p-1 bg-mtg-blue rounded text-white text-xs">+</span>
+                        Novo Deck
+                      </h4>
                       <div className="space-y-4">
                         <Input
                           label="Nome do Deck"
@@ -207,9 +278,9 @@ export default function PlayersPage() {
                                 key={color.key}
                                 type="button"
                                 onClick={() => toggleDeckColor(color.key)}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all transform hover:scale-105 ${
                                   deckColors.includes(color.key)
-                                    ? 'ring-2 ring-offset-2 ring-gray-400'
+                                    ? 'ring-2 ring-offset-2 ring-gray-400 shadow-lg'
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                 }`}
                                 style={deckColors.includes(color.key) ? {
@@ -222,38 +293,107 @@ export default function PlayersPage() {
                             ))}
                           </div>
                         </div>
-                        <Button 
-                          onClick={() => handleCreateDeck(player.id)}
-                          disabled={!deckName.trim()}
-                        >
-                          Criar Deck
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => handleCreateDeck(playerId)}
+                            disabled={!deckName.trim()}
+                            className="flex-1"
+                          >
+                            Criar Deck
+                          </Button>
+                          <Button 
+                            variant="secondary"
+                            onClick={() => {
+                              setSelectedPlayerForDeck(null);
+                              setDeckName('');
+                              setDeckColors([]);
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
                       </div>
                     </Card>
-                  )}
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {decks[player.id] && decks[player.id].length > 0 ? (
-                      decks[player.id].map(deck => (
-                        <DeckCard
-                          key={deck.id}
-                          deck={deck}
-                          player={player}
-                          onDelete={(id) => handleDeleteDeck(id, player.id)}
-                        />
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-500 py-4">Nenhum deck cadastrado</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+                  ) : null
+                }
+              />
             ))
           ) : (
             <Card>
               <p className="text-gray-500 text-center py-12">
-                Nenhum jogador cadastrado ainda. Clique em "Novo Jogador" para começar.
+                {searchQuery 
+                  ? `Nenhum jogador encontrado para "${searchQuery}"` 
+                  : 'Nenhum jogador cadastrado ainda. Clique em "Novo Jogador" para começar.'}
               </p>
+            </Card>
+          )}
+
+          {/* Controles de Paginação */}
+          {totalPages > 1 && (
+            <Card className="mt-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-gray-600">
+                  Mostrando {((currentPage - 1) * itemsPerPage) + 1} até {Math.min(currentPage * itemsPerPage, filteredPlayers.length)} de {filteredPlayers.length} jogadores
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="flex items-center gap-1"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Anterior
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => {
+                      // Mostrar apenas algumas páginas ao redor da atual
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all ${
+                              currentPage === page
+                                ? 'bg-gradient-to-r from-mtg-blue to-blue-600 text-white shadow-md'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if (
+                        page === currentPage - 2 ||
+                        page === currentPage + 2
+                      ) {
+                        return (
+                          <span key={page} className="px-2 text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center gap-1"
+                  >
+                    Próxima
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             </Card>
           )}
         </div>
