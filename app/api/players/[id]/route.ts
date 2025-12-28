@@ -3,10 +3,11 @@ import { getPlayerById, deletePlayer } from '@/lib/data';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const player = await getPlayerById(params.id);
+    const { id } = await params;
+    const player = await getPlayerById(id);
     if (!player) {
       return NextResponse.json(
         { success: false, error: 'Jogador não encontrado' },
@@ -29,10 +30,11 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const deleted = await deletePlayer(params.id);
+    const { id } = await params;
+    const deleted = await deletePlayer(id);
     if (!deleted) {
       return NextResponse.json(
         { success: false, error: 'Jogador não encontrado' },

@@ -37,46 +37,35 @@ yarn start
 
 ## 🌐 Deploy na Vercel
 
-Este projeto está pronto para deploy na Vercel com banco de dados PostgreSQL persistente.
+Este projeto está pronto para deploy na Vercel com banco de dados PostgreSQL gratuito.
 
-### Passos para Deploy:
+### 📖 Guia Completo de Deploy
 
-1. **Conecte seu repositório à Vercel**:
+Para um guia detalhado passo a passo, consulte [DEPLOY.md](./DEPLOY.md)
+
+### Resumo Rápido:
+
+1. **Crie o banco de dados no Neon (GRATUITO - RECOMENDADO)**:
+   - Acesse [neon.tech](https://neon.tech) e crie uma conta
+   - Crie um novo projeto
+   - Copie a connection string (use "Pooled connection")
+
+2. **Importe o projeto na Vercel**:
    - Acesse [vercel.com](https://vercel.com)
    - Importe seu repositório Git
-   - A Vercel detectará automaticamente que é um projeto Next.js
+   - **Integração Neon** (recomendado): Vá em Integrations → Browse Marketplace → Neon
+   - **Ou manualmente**: Adicione `POSTGRES_URL` nas Environment Variables com a connection string
 
-2. **Configure o Banco de Dados PostgreSQL**:
-   - No dashboard da Vercel, vá em **Storage**
-   - Clique em **Create Database** → **Postgres**
-   - Escolha um nome para o banco (ex: `mtg-db`)
-   - Selecione uma região próxima a você
-   - Clique em **Create**
-
-3. **Configure as Variáveis de Ambiente**:
-   - Na Vercel, vá em **Settings** → **Environment Variables**
-   - A Vercel cria automaticamente as variáveis quando você conecta um banco Postgres
-   - As variáveis incluem:
-     - `POSTGRES_URL`
-     - `POSTGRES_PRISMA_URL`
-     - `POSTGRES_URL_NON_POOLING`
-   - **Importante**: Não é necessário configurar manualmente, a Vercel faz isso automaticamente!
-
-4. **Inicialize o Banco de Dados**:
-   - Após o deploy, acesse: `https://seu-app.vercel.app/api/db/init`
-   - Ou faça uma requisição POST para `/api/db/init` (opcional, será inicializado automaticamente no primeiro uso)
-   - Para dados de exemplo, faça POST para `/api/init`
-
-5. **Configurações Recomendadas**:
-   - **Framework Preset**: Next.js (detectado automaticamente)
-   - **Build Command**: `yarn build` (ou `npm run build`)
-   - **Output Directory**: `.next` (padrão do Next.js)
-   - **Install Command**: `yarn install` (ou `npm install`)
-
-6. **Deploy**:
+3. **Deploy e inicialize**:
    - Clique em "Deploy"
-   - Aguarde o build e deploy
-   - Sua aplicação estará disponível em uma URL da Vercel
+   - Execute: `POST https://seu-app.vercel.app/api/db/init` para criar as tabelas
+   - (Opcional) Execute: `POST https://seu-app.vercel.app/api/init` para dados de exemplo
+
+**Por que Neon?**
+- ✅ Recomendado oficialmente pela Vercel
+- ✅ 10GB gratuitos (muito mais que outras opções)
+- ✅ Integração fácil via Marketplace
+- ✅ PostgreSQL serverless otimizado
 
 ## 📁 Estrutura do Projeto
 
@@ -124,7 +113,7 @@ O projeto usa Next.js API Routes (App Router):
 
 ## 💾 Banco de Dados
 
-O projeto usa **Vercel Postgres** para persistência de dados. Os dados são armazenados de forma permanente e não são perdidos quando o servidor reinicia.
+O projeto usa **PostgreSQL** com **Neon** (recomendado pela Vercel) ou **Supabase** (alternativa gratuita). Os dados são armazenados de forma permanente e não são perdidos quando o servidor reinicia.
 
 ### Estrutura do Banco:
 
@@ -133,15 +122,22 @@ O projeto usa **Vercel Postgres** para persistência de dados. Os dados são arm
 - **matches**: Armazena as partidas realizadas
 - **match_participants**: Relaciona jogadores e decks com partidas
 
+### Por que Neon?
+
+- ✅ **10GB gratuitos** (mais que outras opções)
+- ✅ **Recomendado oficialmente pela Vercel**
+- ✅ **Integração fácil via Marketplace**
+- ✅ **PostgreSQL serverless otimizado**
+
 ### Inicialização:
 
-O banco de dados é inicializado automaticamente na primeira requisição. Se precisar reinicializar:
+Após o deploy na Vercel, inicialize o banco fazendo:
 
 ```bash
-# Via API
+# Criar as tabelas
 curl -X POST https://seu-app.vercel.app/api/db/init
 
-# Ou adicione dados de exemplo
+# (Opcional) Adicionar dados de exemplo
 curl -X POST https://seu-app.vercel.app/api/init
 ```
 
@@ -154,18 +150,18 @@ Para desenvolvimento local, você pode usar:
    npm i -g vercel
    vercel link
    vercel env pull .env.local
+   yarn dev
    ```
 
-2. **PostgreSQL local**:
-   - Instale PostgreSQL localmente
+2. **PostgreSQL local ou Neon/Supabase local**:
    - Crie um arquivo `.env.local`:
      ```
-     POSTGRES_URL="postgresql://user:password@localhost:5432/mtg"
+     POSTGRES_URL="postgresql://user:password@host:5432/database"
      ```
 
 ### Migrações:
 
-O schema é criado automaticamente na primeira inicialização. Para alterar o schema, edite `lib/db/index.ts` e faça uma nova requisição para `/api/db/init`.
+O schema é criado automaticamente quando você executa `/api/db/init`. Para alterar o schema, edite `lib/db/index.ts` e faça uma nova requisição para `/api/db/init`.
 
 ## 📝 Licença
 

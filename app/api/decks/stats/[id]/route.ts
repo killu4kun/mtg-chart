@@ -3,10 +3,11 @@ import { getDeckStats } from '@/lib/data';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const stats = await getDeckStats(params.id);
+    const { id } = await params;
+    const stats = await getDeckStats(id);
     return NextResponse.json({ success: true, data: stats });
   } catch (error: any) {
     return NextResponse.json(

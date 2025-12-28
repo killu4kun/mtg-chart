@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { sql } from './client';
 import { Match, MatchParticipant } from '@/lib/types';
 
 function generateId(): string {

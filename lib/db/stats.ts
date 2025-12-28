@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { sql } from './client';
 import { PlayerStats, DeckStats } from '@/lib/types';
 
 export async function getPlayerStats(playerId: string): Promise<PlayerStats> {

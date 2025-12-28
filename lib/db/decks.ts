@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { sql } from './client';
 import { Deck } from '@/lib/types';
 
 function generateId(): string {
@@ -70,9 +70,12 @@ export async function createDeck(
   const id = generateId();
   const now = new Date();
   
+  // O driver pg trata arrays automaticamente, mas vamos garantir que seja um array ou null
+  const colorsValue = colors && colors.length > 0 ? colors : null;
+  
   await sql`
     INSERT INTO decks (id, player_id, name, colors, created_at)
-    VALUES (${id}, ${playerId}, ${name}, ${colors ? sql.array(colors) : null}, ${now.toISOString()})
+    VALUES (${id}, ${playerId}, ${name}, ${colorsValue}, ${now.toISOString()})
   `;
   
   return {

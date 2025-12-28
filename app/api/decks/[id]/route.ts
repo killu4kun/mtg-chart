@@ -3,10 +3,11 @@ import { getDeckById, deleteDeck } from '@/lib/data';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const deck = await getDeckById(params.id);
+    const { id } = await params;
+    const deck = await getDeckById(id);
     if (!deck) {
       return NextResponse.json(
         { success: false, error: 'Deck não encontrado' },
@@ -29,10 +30,11 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const deleted = await deleteDeck(params.id);
+    const { id } = await params;
+    const deleted = await deleteDeck(id);
     if (!deleted) {
       return NextResponse.json(
         { success: false, error: 'Deck não encontrado' },
